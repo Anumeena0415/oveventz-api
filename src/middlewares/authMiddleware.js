@@ -1,0 +1,145 @@
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
+
+// JWT Authentication Middleware
+const authenticateToken = async (req, res, next) => {
+    try {
+        // 1️⃣ Get token from Authorization header
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Access token required"
+            });
+        }
+
+        // 2️⃣ Check JWT secret
+        const secret = process.env.JWT_SECRET;
+        if (!secret) {
+            console.error("JWT_SECRET not configured");
+            return res.status(500).json({
+                success: false,
+                message: "Server configuration error"
+            });
+        }
+
+        // 3️⃣ Verify JWT token
+        let decoded;
+        try {
+            decoded = jwt.verify(token, secret);
+        } catch (err) {
+            if (err.name === 'JsonWebTokenError') {
+                return res.status(401).json({ success: false, message: "Invalid token" });
+            }
+            if (err.name === 'TokenExpiredError') {
+                return res.status(401).json({ success: false, message: "Token expired" });
+            }
+            throw err; // other errors
+        }
+
+        // 4️⃣ Find user by ID from token
+        const userId = decoded.sub; // ensure login token sets sub: user._id
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        if (!user.is_active) {
+            return res.status(403).json({
+                success: false,
+                message: "Account is inactive"
+            });
+        }
+
+        // 5️⃣ Attach user info to request object
+        req.user = {
+            id: user._id.toString(),
+            email: user.email,
+            role: user.role,
+            vendor_id: user.vendor_id ? user.vendor_id.toString() : null,
+            is_active: user.is_active
+        };
+
+        next();
+    } catch (error) {
+        console.error("Authentication error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Authentication failed"
+        });
+    }
+};
+
+// Middleware to ensure user can only access their own profile
+const authorizeProfileAccess = (req, res, next) => {
+    try {
+        const { userId } = req.params;
+        const authenticatedUserId = req.user.id;
+
+        if (userId !== authenticatedUserId && req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. You can only access your own profile"
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error("Authorization error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Authorization failed"
+        });
+    }
+};
+
+// Middleware to ensure only vendor role can access vendor endpoints
+const requireVendorRole = (req, res, next) => {
+    try {
+        if (req.user.role !== 'vendor') {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Vendor role required"
+            });
+        }
+        next();
+    } catch (error) {
+        console.error("Role authorization error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Role authorization failed"
+        });
+    }
+};
+
+// Middleware to ensure only admin role can access admin endpoints
+const requireAdminRole = (req, res, next) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied. Admin role required"
+            });
+        }
+        next();
+    } catch (error) {
+        console.error("Admin authorization error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Admin authorization failed"
+        });
+    }
+};
+
+module.exports = {
+    authenticateToken,
+    authorizeProfileAccess,
+    requireVendorRole,
+    requireAdminRole
+};
