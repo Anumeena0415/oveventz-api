@@ -34,7 +34,8 @@ const allowedOrigins = [
   "https://ocassion-super-5kzj.vercel.app",
   "https://ocassion-super.vercel.app",
   "https://oveventz-frontend.vercel.app", // Production frontend
-  "https://oveventz-frontend-git-main-developer01-s-projects.vercel.app", // Preview deployment
+  "https://oveventz-frontend-git-main-developer01-s-projects.vercel.app", 
+  "https://oveeventzbacknew.vercel.app",// Preview deployment
   process.env.CLIENT_URL, // optional frontend from .env
   // Allow any Vercel preview deployments
   ...(process.env.CLIENT_URL ? [] : []),
