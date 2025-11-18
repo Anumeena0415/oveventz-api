@@ -1,46 +1,30 @@
 {
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "oveventz-backend",
+  "version": "1.0.0",
+  "description": "OccasionSuper Backend API",
+  "main": "src/server.js",
+  "type": "commonjs",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": ["express", "api", "backend"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
-    "@emailjs/browser": "^4.4.1",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.1",
-    "@mui/material": "^7.3.1",
-    "@tailwindcss/postcss": "^4.1.12",
-    "axios": "^1.11.0",
     "cloudinary": "^2.7.0",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "lucide-react": "^0.542.0",
+    "helmet": "^8.0.0",
+    "mongoose": "^8.9.2",
     "multer": "^2.0.2",
-    "postcss": "^8.5.6",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "react-icons": "^5.5.0",
-    "react-intersection-observer": "^9.16.0",
-    "react-router-dom": "^7.8.2",
-    "react-toastify": "^10.0.6",
-    "recharts": "^3.2.0",
-    "streamifier": "^0.1.1",
-    "tailwindcss": "^4.1.12"
+    "nodemailer": "^6.9.16",
+    "streamifier": "^0.1.1"
   },
-  "devDependencies": {
-    "@eslint/js": "^9.33.0",
-    "@types/react": "^19.1.10",
-    "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.33.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
-    "vite": "^7.1.2"
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
