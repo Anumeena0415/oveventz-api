@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+    
+    body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+@layer utilities {
+    .hover-global {
+        @apply hover:text-[#E69B83] hover:scale-105 sm:hover:scale-110 transition-all duration-300 ease-linear;
+    }
+
+    .hover-text-shadow {
+        text-shadow: 2px 2px 8px rgba(230, 155, 131, 0.6);
+    }
+
+    .hover\:text-shadow:hover {
+        text-shadow: 0 0 10px rgba(230, 155, 131, 0.8),
+            0 0 20px rgba(230, 155, 131, 0.6);
+    }
+
+    .text-global {
+        @apply text-[#E69B83];
+    }
+
+    /* Responsive container utilities */
+    .container-responsive {
+        @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    /* Responsive text utilities */
+    .text-responsive-xs {
+        @apply text-xs sm:text-sm;
+    }
+
+    .text-responsive-sm {
+        @apply text-sm sm:text-base;
+    }
+
+    .text-responsive-base {
+        @apply text-sm sm:text-base lg:text-lg;
+    }
+
+    .text-responsive-lg {
+        @apply text-base sm:text-lg lg:text-xl;
+    }
+
+    .text-responsive-xl {
+        @apply text-lg sm:text-xl lg:text-2xl;
+    }
+
+    .text-responsive-2xl {
+        @apply text-xl sm:text-2xl lg:text-3xl;
+    }
+
+    .text-responsive-3xl {
+        @apply text-2xl sm:text-3xl lg:text-4xl;
+    }
+
+    .text-responsive-4xl {
+        @apply text-3xl sm:text-4xl lg:text-5xl;
+    }
+
+    /* Responsive spacing utilities */
+    .spacing-responsive {
+        @apply py-8 sm:py-12 lg:py-16;
+    }
+
+    .spacing-responsive-sm {
+        @apply py-4 sm:py-6 lg:py-8;
+    }
+
+    /* Responsive grid utilities */
+    .grid-responsive {
+        @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8;
+    }
+
+    .grid-responsive-2 {
+        @apply grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6;
+    }
+
+    .grid-responsive-4 {
+        @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8;
+    }
+
+    /* Responsive button utilities */
+    .btn-responsive {
+        @apply px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base rounded-lg transition-all duration-200;
+    }
+
+    .btn-responsive-lg {
+        @apply px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-lg transition-all duration-200;
+    }
+
+    /* Responsive card utilities */
+    .card-responsive {
+        @apply bg-white rounded-xl sm:rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300;
+    }
+
+    /* Responsive input utilities */
+    .input-responsive {
+        @apply w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#E69B83] focus:border-transparent;
+    }
+
+    /* Responsive image utilities */
+    .img-responsive {
+        @apply w-full h-auto object-cover;
+    }
+
+    /* Responsive flex utilities */
+    .flex-responsive {
+        @apply flex flex-col sm:flex-row;
+    }
+
+    .flex-responsive-center {
+        @apply flex flex-col sm:flex-row items-center;
+    }
+
+    .flex-responsive-between {
+        @apply flex flex-col sm:flex-row justify-between;
+    }
+
+    /* Responsive gap utilities */
+    .gap-responsive {
+        @apply gap-3 sm:gap-4 lg:gap-6;
+    }
+
+    .gap-responsive-sm {
+        @apply gap-2 sm:gap-3;
+    }
+
+    .gap-responsive-lg {
+        @apply gap-4 sm:gap-6 lg:gap-8;
+    }
+}
