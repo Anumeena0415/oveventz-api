@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const multer = require("multer");
 const streamifier = require("streamifier");
+const path = require("path");
 const { v2: cloudinary } = require("cloudinary");
 const nodemailer = require("nodemailer");
 const connectDB = require("./config/db");
@@ -30,14 +31,13 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
+  "http://localhost:5000",
   "https://ovevents.onrender.com",
   "https://ocassion-super-5kzj.vercel.app",
   "https://ocassion-super.vercel.app",
   "https://oveventz-frontend.vercel.app", // Production frontend
-  "https://oveventz-frontend-git-main-developer01-s-projects.vercel.app", 
-  "https://oveeventzbacknew.vercel.app",
-  "https://oveventz-web.vercel.app",/// Preview deployment
-   process.env.CLIENT_URL, // optional frontend from .env
+  "https://oveventz-frontend-git-main-developer01-s-projects.vercel.app", // Preview deployment
+  process.env.CLIENT_URL, // optional frontend from .env
   // Allow any Vercel preview deployments
   ...(process.env.CLIENT_URL ? [] : []),
 ].filter(Boolean);
@@ -51,19 +51,69 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
+// ✅ Configure Helmet to allow cross-origin for static files
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
-app.use("/uploads", cors(), express.static("uploads"));
+// ✅ Serve static files from uploads directory with proper CORS
+const uploadsPath = path.join(__dirname, "..", "uploads");
+const fs = require("fs");
 
+// Verify uploads directory exists
+if (!fs.existsSync(uploadsPath)) {
+  console.warn("⚠️ Uploads directory not found, creating it:", uploadsPath);
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+
+console.log("📁 Serving static files from:", uploadsPath);
+console.log("📁 Absolute path:", path.resolve(uploadsPath));
+console.log("📁 Files in uploads:", fs.existsSync(uploadsPath) ? fs.readdirSync(uploadsPath).length : 0);
+
+// Serve static files BEFORE other middleware to ensure proper CORS headers
+app.use(
+  "/uploads",
+  (req, res, next) => {
+    // Set CORS headers explicitly
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  },
+  express.static(uploadsPath, {
+    setHeaders: (res, filePath) => {
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+    },
+  })
+);
 
 // ✅ Middlewares
-app.use(helmet());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
@@ -140,6 +190,29 @@ app.get("/", (req, res) => {
     status: "active",
     timestamp: new Date().toISOString(),
   });
+});
+
+// ✅ Test static file serving
+app.get("/test-uploads", (req, res) => {
+  const fs = require("fs");
+  const uploadsPath = path.join(__dirname, "..", "uploads");
+  try {
+    const files = fs.readdirSync(uploadsPath);
+    res.json({
+      success: true,
+      uploadsPath,
+      fileCount: files.length,
+      sampleFiles: files.slice(0, 5),
+      message: "Static file serving is configured correctly"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      uploadsPath,
+      error: error.message,
+      message: "Error reading uploads directory"
+    });
+  }
 });
 
 // ✅ Generic File Upload Endpoint (for blog images, etc.)
@@ -469,6 +542,7 @@ app.get('/api/reviews', async (req, res) => {
   }
 });
 
+console.log
 // ✅ 404 Handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({
@@ -490,7 +564,7 @@ app.use((err, req, res, next) => {
 });
 
 // ✅ Start Server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
-const { login, register, registerData, saveData ,testData} = require("../controllers/auth");
+const { login, register, registerCustomer, registerData, saveData ,testData} = require("../controllers/auth");
 console.log("authRoutes loaded");
 router.post("/register", register);
+router.post("/register/customer", registerCustomer);
 router.post("/login", login);
 //router.post("/save-data", saveData);
 router.post("/save-data", saveData);

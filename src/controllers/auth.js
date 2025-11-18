@@ -93,6 +93,81 @@ module.exports = {
             });
         }
     },
+    registerCustomer: async (req, res) => {
+        try {
+            const { email, password, name, phone_number } = req.body;
+
+            // Validate required fields
+            if (!email || !password) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email and password are required"
+                });
+            }
+
+            // Check if user already exists
+            const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+            if (existingUser) {
+                return res.status(409).json({
+                    success: false,
+                    message: "User with this email already exists"
+                });
+            }
+
+            // Create new customer user
+            const userData = {
+                email: email.toLowerCase().trim(),
+                password,
+                role: "customer",
+                phone_number: phone_number || null,
+            };
+
+            const user = new User(userData);
+            await user.save();
+
+            // Generate token
+            const token = signToken({
+                sub: user._id.toString(),
+                role: user.role,
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: "Customer registered successfully",
+                data: {
+                    token,
+                    user: {
+                        id: user._id,
+                        email: user.email,
+                        role: user.role,
+                        phone_number: user.phone_number,
+                    },
+                },
+            });
+        } catch (error) {
+            console.error("Customer registration error:", error);
+
+            if (error.name === "ValidationError") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Validation failed",
+                    errors: Object.values(error.errors).map(err => err.message)
+                });
+            }
+
+            if (error.code === 11000) {
+                return res.status(409).json({
+                    success: false,
+                    message: "Email already exists"
+                });
+            }
+
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error"
+            });
+        }
+    },
      registerData: async (req, res) => {
             try {
                
