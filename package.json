@@ -20,11 +20,13 @@
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "helmet": "^8.0.0",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.9.2",
     "multer": "^2.0.2",
     "nodemailer": "^6.9.16",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "winston": "^3.15.0"
   },
   "engines": {
     "node": ">=18.0.0",
