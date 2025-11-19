@@ -144,37 +144,48 @@ const transporter = nodemailer.createTransport({
   auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
   tls: {
     rejectUnauthorized: false, // Allow self-signed certificates (needed for some SMTP servers)
+    ciphers: 'SSLv3', // Force SSLv3 for better compatibility
   },
   // Connection pool settings for better reliability
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 3,
-  rateDelta: 1000,
-  rateLimit: 5,
+  pool: false, // Disable pool for Render (can cause issues)
   // Increase timeout settings for Render/production
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 30000, // 30 seconds
-  socketTimeout: 60000, // 60 seconds
+  connectionTimeout: 30000, // 30 seconds (reduced from 60)
+  greetingTimeout: 10000, // 10 seconds (reduced from 30)
+  socketTimeout: 30000, // 30 seconds (reduced from 60)
+  // Additional settings for better reliability
+  requireTLS: smtpPort === 587, // Require TLS for port 587
+  debug: false, // Set to true for debugging
+  logger: false, // Disable logger
 });
 
 // Verify email configuration asynchronously (non-blocking)
 // Don't block server startup if email verification fails
-setTimeout(() => {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.log("⚠️ Email configuration warning:", error.message);
-      console.log("SMTP settings:", {
-        host: smtpHost || null,
-        port: smtpPort || null,
-        user: smtpUser ? smtpUser.replace(/(.{2}).+(@.+)/, "$1****$2") : null,
-        passSet: !!smtpPass,
-      });
-      console.log("⚠️ Email will be tested when first email is sent");
-    } else {
-      console.log("✅ Email server is ready");
-    }
-  });
-}, 2000); // Verify after 2 seconds (non-blocking)
+// Skip verification on Render to avoid timeout issues
+if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
+  setTimeout(() => {
+    transporter.verify((error, success) => {
+      if (error) {
+        console.log("⚠️ Email configuration warning:", error.message);
+        console.log("SMTP settings:", {
+          host: smtpHost || null,
+          port: smtpPort || null,
+          user: smtpUser ? smtpUser.replace(/(.{2}).+(@.+)/, "$1****$2") : null,
+          passSet: !!smtpPass,
+        });
+        console.log("⚠️ Email will be tested when first email is sent");
+        console.log("💡 Tip: Gmail SMTP may timeout on Render. Consider using SendGrid or Resend for production.");
+      } else {
+        console.log("✅ Email server is ready");
+      }
+    });
+  }, 2000); // Verify after 2 seconds (non-blocking)
+} else {
+  console.log("⚠️ Skipping SMTP verification on Render (will test on first email send)");
+  console.log("💡 Tip: If emails fail, check:");
+  console.log("   1. Gmail App Password is set (not regular password)");
+  console.log("   2. 'Less secure app access' is enabled (if using regular password)");
+  console.log("   3. Consider using SendGrid/Resend for better reliability");
+}
 
 // ✅ Connect MongoDB
 connectDB()

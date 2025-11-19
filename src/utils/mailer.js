@@ -221,37 +221,42 @@ if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
     },
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates (needed for some SMTP servers)
+      ciphers: 'SSLv3', // Force SSLv3 for better compatibility
     },
-    // Connection pool settings for better reliability in production
-    pool: true,
-    maxConnections: 1,
-    maxMessages: 3,
-    rateDelta: 1000,
-    rateLimit: 5,
-    // Increase timeout settings for Render/production
-    connectionTimeout: 60000, // 60 seconds
-    greetingTimeout: 30000, // 30 seconds
-    socketTimeout: 60000, // 60 seconds
+    // Connection pool settings - disabled for Render
+    pool: false, // Disable pool for Render (can cause timeout issues)
+    // Reduced timeout settings for Render/production
+    connectionTimeout: 30000, // 30 seconds (reduced from 60)
+    greetingTimeout: 10000, // 10 seconds (reduced from 30)
+    socketTimeout: 30000, // 30 seconds (reduced from 60)
+    // Additional settings
+    requireTLS: smtpPort === 587, // Require TLS for port 587
+    debug: false,
+    logger: false,
   });
 
   // Verify email configuration asynchronously (non-blocking)
-  // Don't block module loading if email verification fails
-  setTimeout(() => {
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error("⚠️ Email configuration warning in mailer.js:", error.message);
-        console.error("⚠️ Error code:", error.code);
-        console.error("⚠️ Error command:", error.command);
-        if (error.response) {
-          console.error("⚠️ SMTP Response:", error.response);
+  // Skip verification on Render to avoid timeout issues
+  if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
+    setTimeout(() => {
+      transporter.verify((error, success) => {
+        if (error) {
+          console.error("⚠️ Email configuration warning in mailer.js:", error.message);
+          console.error("⚠️ Error code:", error.code);
+          console.error("⚠️ Error command:", error.command);
+          if (error.response) {
+            console.error("⚠️ SMTP Response:", error.response);
+          }
+          console.error("⚠️ Email will be tested when first email is sent");
+        } else {
+          console.log("✅ Email transporter ready in mailer.js");
+          console.log("✅ SMTP connection verified successfully");
         }
-        console.error("⚠️ Email will be tested when first email is sent");
-      } else {
-        console.log("✅ Email transporter ready in mailer.js");
-        console.log("✅ SMTP connection verified successfully");
-      }
-    });
-  }, 2000); // Verify after 2 seconds (non-blocking)
+      });
+    }, 2000); // Verify after 2 seconds (non-blocking)
+  } else {
+    console.log("⚠️ Skipping SMTP verification on Render (will test on first email send)");
+  }
 
   module.exports = transporter;
 }
