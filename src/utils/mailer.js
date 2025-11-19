@@ -172,37 +172,86 @@ const smtpPort = parseInt(process.env.SMTP_PORT?.trim() || "587");
 const smtpUser = process.env.SMTP_USER?.trim();
 const smtpPass = process.env.SMTP_PASS?.trim();
 
-const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpPort === 465, // true for 465, false for other ports
-  auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed certificates
-  },
-  // Connection pool settings for better reliability
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 3,
-  rateDelta: 1000,
-  rateLimit: 5,
-  // Increase timeout settings for Render/production
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 30000, // 30 seconds
-  socketTimeout: 60000, // 60 seconds
+// Validate SMTP configuration
+const isProduction = process.env.NODE_ENV === 'production';
+
+console.log("📧 SMTP Configuration Check:", {
+  environment: isProduction ? 'production' : 'development',
+  host: smtpHost || '❌ MISSING',
+  port: smtpPort || '❌ MISSING',
+  user: smtpUser ? smtpUser.replace(/(.{2}).+(@.+)/, "$1****$2") : '❌ MISSING',
+  passSet: !!smtpPass,
+  allSet: !!(smtpHost && smtpPort && smtpUser && smtpPass)
 });
 
-// Verify email configuration asynchronously (non-blocking)
-// Don't block module loading if email verification fails
-setTimeout(() => {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.log("⚠️ Email configuration warning in mailer.js:", error.message);
-      console.log("⚠️ Email will be tested when first email is sent");
-    } else {
-      console.log("✅ Email transporter ready in mailer.js");
+// Check if all required credentials are present
+if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+  console.error("❌ CRITICAL: SMTP credentials are missing!");
+  console.error("Required environment variables:");
+  console.error("  - SMTP_HOST:", smtpHost ? "✅" : "❌ MISSING");
+  console.error("  - SMTP_PORT:", smtpPort ? "✅" : "❌ MISSING");
+  console.error("  - SMTP_USER:", smtpUser ? "✅" : "❌ MISSING");
+  console.error("  - SMTP_PASS:", smtpPass ? "✅" : "❌ MISSING");
+  
+  // Create a stub transporter that throws clear errors
+  const stubTransporter = {
+    sendMail: async (options) => {
+      throw new Error(
+        `SMTP not configured. Missing: ${!smtpHost ? 'SMTP_HOST ' : ''}${!smtpPort ? 'SMTP_PORT ' : ''}${!smtpUser ? 'SMTP_USER ' : ''}${!smtpPass ? 'SMTP_PASS' : ''}. ` +
+        `Please set these environment variables in your production environment (Vercel/Render).`
+      );
+    },
+    verify: (callback) => {
+      if (callback) {
+        callback(new Error("SMTP not configured"));
+      }
     }
+  };
+  
+  module.exports = stubTransporter;
+} else {
+  // Create transporter with proper configuration
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465, // true for 465, false for other ports
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    },
+    tls: {
+      rejectUnauthorized: false, // Allow self-signed certificates (needed for some SMTP servers)
+    },
+    // Connection pool settings for better reliability in production
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 3,
+    rateDelta: 1000,
+    rateLimit: 5,
+    // Increase timeout settings for Render/production
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000, // 30 seconds
+    socketTimeout: 60000, // 60 seconds
   });
-}, 2000); // Verify after 2 seconds (non-blocking)
 
-module.exports = transporter;
+  // Verify email configuration asynchronously (non-blocking)
+  // Don't block module loading if email verification fails
+  setTimeout(() => {
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error("⚠️ Email configuration warning in mailer.js:", error.message);
+        console.error("⚠️ Error code:", error.code);
+        console.error("⚠️ Error command:", error.command);
+        if (error.response) {
+          console.error("⚠️ SMTP Response:", error.response);
+        }
+        console.error("⚠️ Email will be tested when first email is sent");
+      } else {
+        console.log("✅ Email transporter ready in mailer.js");
+        console.log("✅ SMTP connection verified successfully");
+      }
+    });
+  }, 2000); // Verify after 2 seconds (non-blocking)
+
+  module.exports = transporter;
+}

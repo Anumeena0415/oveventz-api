@@ -2,9 +2,13 @@ const transporter = require("../utils/mailer");
 
 const sendEmail = async (req, res) => {
     const {email, password, businessName, ownerName} = req.body;
-    console.log('req.body:', req.body);
-    console.log(email);
     
+    console.log('📧 Email send request received:', {
+        to: email,
+        businessName: businessName || 'N/A',
+        ownerName: ownerName || 'N/A',
+        environment: process.env.NODE_ENV || 'development'
+    });
 
     if(!email || !password) {
         return res.status(400).json({
@@ -14,9 +18,34 @@ const sendEmail = async (req, res) => {
         });
     }
 
+    // Validate SMTP configuration before attempting to send
+    const smtpUser = process.env.SMTP_USER?.trim();
+    const smtpPass = process.env.SMTP_PASS?.trim();
+    const smtpHost = process.env.SMTP_HOST?.trim();
+    
+    if (!smtpUser || !smtpPass || !smtpHost) {
+        console.error("❌ SMTP Configuration Missing:", {
+            SMTP_USER: !!smtpUser,
+            SMTP_PASS: !!smtpPass,
+            SMTP_HOST: !!smtpHost
+        });
+        return res.status(500).json({
+            success: false,
+            message: "Email service is not configured. Please contact administrator.",
+            error: "SMTP credentials are missing in production environment. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS environment variables."
+        });
+    }
+
     try{
+        const fromEmail = smtpUser;
+        console.log('📤 Attempting to send email...', {
+            from: fromEmail,
+            to: email,
+            subject: "Welcome to OccasionSuper - Your Account Credentials"
+        });
+
         const info = await transporter.sendMail({
-            from: `"OccasionSuper Support" <${process.env.SMTP_USER || process.env.SENDER_EMAIL}>`,
+            from: `"OccasionSuper Support" <${fromEmail}>`,
             to: email,
             subject: "Welcome to OccasionSuper - Your Account Credentials",
             html: `
@@ -381,19 +410,59 @@ const sendEmail = async (req, res) => {
             `,
           });
 
-          res.json({success:true, message:"Email sent successfully", messageId: info.messageId});
+        console.log('✅ Email sent successfully!', {
+            messageId: info.messageId,
+            response: info.response,
+            accepted: info.accepted,
+            rejected: info.rejected
+        });
+
+        res.json({
+            success: true,
+            message: "Email sent successfully",
+            messageId: info.messageId
+        });
     } catch (error) {
         console.error("❌ Error sending email:", error);
-        console.error("Error details:", {
+        console.error("❌ Error details:", {
             message: error.message,
             code: error.code,
             command: error.command,
-            response: error.response
+            response: error.response,
+            responseCode: error.responseCode,
+            errno: error.errno,
+            syscall: error.syscall,
+            hostname: error.hostname,
+            port: error.port
         });
+
+        // Provide more helpful error messages
+        let errorMessage = "Failed to send email";
+        let errorDetails = error.message || "Unknown error occurred";
+
+        if (error.message && error.message.includes("SMTP not configured")) {
+            errorMessage = "Email service is not configured";
+            errorDetails = "SMTP credentials are missing. Please set SMTP environment variables in production.";
+        } else if (error.code === "EAUTH") {
+            errorMessage = "SMTP authentication failed";
+            errorDetails = "Invalid SMTP credentials. Please check SMTP_USER and SMTP_PASS.";
+        } else if (error.code === "ECONNECTION" || error.code === "ETIMEDOUT") {
+            errorMessage = "SMTP connection failed";
+            errorDetails = "Could not connect to SMTP server. Please check SMTP_HOST and SMTP_PORT, and ensure the server is accessible.";
+        } else if (error.code === "EENVELOPE") {
+            errorMessage = "Invalid email address";
+            errorDetails = "The recipient email address is invalid.";
+        }
+
         res.status(500).json({
             success: false,
-            message: "Failed to send email",
-            error: error.message || "Unknown error occurred"
+            message: errorMessage,
+            error: errorDetails,
+            // Include error code in development for debugging
+            ...(process.env.NODE_ENV === 'development' && {
+                errorCode: error.code,
+                fullError: error.toString()
+            })
         });
     }
 }
